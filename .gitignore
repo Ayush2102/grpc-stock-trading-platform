@@ -1,0 +1,60 @@
+# ========================
+# IDE / Editor
+# ========================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# ========================
+# Build outputs
+# ========================
+target/
+out/
+
+# ========================
+# OS-specific
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Logs
+# ========================
+*.log
+
+# ========================
+# Maven
+# ========================
+# Local Maven repository (usually not needed to ignore)
+# .m2/repository/
+
+# ========================
+# gRPC / Protobuf generated code
+# ========================
+**/generated-sources/
+**/generated-sources-protobuf/
+**/generated-sources-protobuf-gradle/
+**/generated-sources/protobuf/
+
+# ========================
+# Application properties / secrets
+# ========================
+**/application.properties
+**/application.yml
+**/secrets.properties
+
+# ========================
+# Misc
+# ========================
+*.class
+*.jar
+*.war
+*.ear
+
+# ========================
+# Test / temporary files
+# ========================
+*.tmp
+*.swp
