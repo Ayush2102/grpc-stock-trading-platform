@@ -8,6 +8,8 @@ option java_outer_classname="StockTradingProto";
 
 service StockTradingService{
   rpc getStockPrice(StockRequest) returns (StockResponse);
+
+  rpc subscribeStockPrice(StockRequest) returns (stream StockResponse);
 }
 
 message StockRequest{
