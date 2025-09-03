@@ -1,0 +1,5 @@
+grpc:
+  client:
+    stockService:
+      address: "static://${SERVER_HOST:localhost}:${SERVER_PORT:9090}"
+      negotiationType: PLAINTEXT

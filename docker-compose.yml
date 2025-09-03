@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  grpc-stock-trading-server:
+    build:
+      context: .
+      dockerfile: grpc-stock-trading-server/Dockerfile
+    container_name: grpc-stock-trading-server
+    env_file:
+      - .env.docker
+    ports:
+      - "9091:9090"
+    networks:
+      - trading-net
+
+  grpc-stock-trading-client:
+    build:
+      context: .
+      dockerfile: grpc-stock-trading-client/Dockerfile
+    container_name: grpc-stock-trading-client
+    environment:
+      - SERVER_HOST=grpc-stock-trading-server
+      - SERVER_PORT=9090
+    depends_on:
+      - grpc-stock-trading-server
+    ports:
+      - "8080:8080"
+    networks:
+      - trading-net
+
+networks:
+  trading-net:
+    driver: bridge
