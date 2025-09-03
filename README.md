@@ -15,7 +15,5 @@ A multi-module Java project using **Spring Boot** and **gRPC** for building a st
 - MongoDB integration (server-side)
 - Protobuf for data serialization
 - Multi-module Maven project structure
-
-## License
-
-TBD
+- Dockerized setup with docker-compose
+- Environment-based configuration for secrets
