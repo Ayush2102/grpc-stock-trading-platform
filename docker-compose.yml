@@ -8,7 +8,8 @@ services:
     env_file:
       - .env.docker
     ports:
-      - "9091:9090"
+      - "9091:9090"  # gRPC
+#      - "9400:9400"  # Prometheus metrics
     networks:
       - trading-net
 
@@ -23,7 +24,31 @@ services:
     depends_on:
       - grpc-stock-trading-server
     ports:
-      - "8080:8080"
+      - "8085:8080"
+#      - "9401:9401"    # Prometheus metrics
+    networks:
+      - trading-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9095:9090"
+    networks:
+      - trading-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # set admin password
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"  # Grafana UI
+    depends_on:
+      - prometheus
     networks:
       - trading-net
 

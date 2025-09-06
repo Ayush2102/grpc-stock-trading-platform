@@ -5,12 +5,15 @@ import com.jain.grpc.StockResponse;
 import com.jain.grpc.StockTradingServiceGrpc;
 import com.jain.grpc_stock_trading_server.entity.Stock;
 import com.jain.grpc_stock_trading_server.repository.StockRepository;
+import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.grpc.server.service.GrpcService;
+import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.grpc.server.service.GrpcService;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

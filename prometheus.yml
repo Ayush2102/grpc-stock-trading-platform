@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s   # how often to scrape targets
+
+scrape_configs:
+  - job_name: 'grpc-stock-trading-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:9400']   # for server
+
+  - job_name: 'grpc-stock-trading-client'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:9401']   # for client
