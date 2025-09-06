@@ -19,8 +19,8 @@ It demonstrates clean module separation, shared protobuf contracts, and containe
 - Dockerized setup with docker-compose
 - Environment-based configuration for secrets
 - Monitoring with Prometheus and Grafana
-  - Prometheus collects server and client metrics
-  - Grafana visualizes metrics with dashboards
+    - Prometheus collects server and client metrics
+    - Grafana visualizes metrics with dashboards
 
 ## Tech Stack
 - Java 17 · Spring Boot 3 · gRPC · Protobuf
@@ -39,10 +39,11 @@ It demonstrates clean module separation, shared protobuf contracts, and containe
 ## Run with Docker
 1. Create env file:
     - `.env.docker` → `MONGO_USER`, `MONGO_PASS`
-3. Run:
+2. Run:
    ```bash
    docker compose up --build
     ```
+
 - Server exposed at localhost:9091 (gRPC)
 - Client exposed at localhost:8080
 - Prometheus dashboard at localhost:9095
