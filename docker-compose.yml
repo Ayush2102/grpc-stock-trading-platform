@@ -24,7 +24,7 @@ services:
     depends_on:
       - grpc-stock-trading-server
     ports:
-      - "8085:8080"
+      - "8085:8085"
 #      - "9401:9401"    # Prometheus metrics
     networks:
       - trading-net

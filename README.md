@@ -45,7 +45,7 @@ It demonstrates clean module separation, shared protobuf contracts, and containe
     ```
 
 - Server exposed at localhost:9091 (gRPC)
-- Client exposed at localhost:8080
+- Client exposed at localhost:8085
 - Prometheus dashboard at localhost:9095
 - Grafana dashboard at localhost:3000 (default user: admin / password: admin)
 

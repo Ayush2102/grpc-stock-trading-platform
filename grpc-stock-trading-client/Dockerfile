@@ -7,7 +7,7 @@ FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/grpc-stock-trading-client/target/*.jar app.jar
 # main app REST/gRPC endpoints
-EXPOSE 8080
+EXPOSE 8085
 # actuator metrics for Prometheus
 #EXPOSE 9401
 ENTRYPOINT ["java", "-jar", "app.jar"]
