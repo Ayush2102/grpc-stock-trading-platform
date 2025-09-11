@@ -1,0 +1,9 @@
+type Stock {
+    symbol: String!
+    price: Float!
+    timestamp: String!
+}
+
+type Query {
+    getStock(symbol: String!): Stock
+}

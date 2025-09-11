@@ -1,8 +1,11 @@
-# gRPC Stock Trading Platform
+# gRPC + GraphQL Stock Trading Platform
 
-A multi-module Java project using **Spring Boot** and **gRPC** to simulate a stock trading platform.  
+A multi-module Java project using **Spring Boot**, **gRPC** and **GraphQL** to simulate a stock trading platform.  
 It demonstrates clean module separation, shared protobuf contracts, and containerized deployment.
 
+The system provides:
+- **gRPC APIs** for efficient service-to-service communication
+- **GraphQL API** layer on the client side for flexible, developer-friendly queries
 ## Modules
 
 1. **common-protos** – Contains the shared `.proto` files for server and client communication.
@@ -12,7 +15,8 @@ It demonstrates clean module separation, shared protobuf contracts, and containe
 ## Features
 
 - gRPC-based communication between server and client
-- Spring Boot framework
+- GraphQL API layer (client-side) for querying stock data
+- Spring Boot framework with modular design
 - MongoDB integration (server-side)
 - Protobuf for data serialization
 - Multi-module Maven project structure
@@ -23,9 +27,38 @@ It demonstrates clean module separation, shared protobuf contracts, and containe
     - Grafana visualizes metrics with dashboards
 
 ## Tech Stack
-- Java 17 · Spring Boot 3 · gRPC · Protobuf
+- Java 17 · Spring Boot 3 · gRPC · GraphQL · Protobuf
 - MongoDB · Maven (multi-module) · Docker & Docker Compose
 - Prometheus · Grafana · Micrometer (metrics collection)
+
+## GraphQL API
+
+The client module exposes a GraphQL endpoint for querying stock data.
+
+### Endpoint
+```POST http://localhost:8085/graphql```
+### Example Query
+```graphql
+query {
+  getStock(symbol: "AAPL") {
+    symbol
+    price
+    timestamp
+  }
+}
+```
+### Example Response
+```graphql
+{
+  "data": {
+    "getStock": {
+      "symbol": "AAPL",
+      "price": 182.36,
+      "timestamp": "2025-09-11T18:45:00Z"
+    }
+  }
+}
+```
 
 ## Run Locally
 1. Create env file:
