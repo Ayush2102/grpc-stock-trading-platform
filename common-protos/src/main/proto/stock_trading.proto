@@ -10,6 +10,12 @@ service StockTradingService{
   rpc getStockPrice(StockRequest) returns (StockResponse);
 
   rpc subscribeStockPrice(StockRequest) returns (stream StockResponse);
+
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+
+  rpc GetPortfolio(GetPortfolioRequest) returns (GetPortfolioResponse);
 }
 
 message StockRequest{
@@ -20,4 +26,54 @@ message StockResponse{
   string stock_symbol=1;
   double price=2;
   string timestamp=3;
+}
+
+enum OrderSide {
+  BUY = 0;
+  SELL = 1;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ACCEPTED = 1;
+  EXECUTED = 2;
+  REJECTED = 3;
+}
+
+message PlaceOrderRequest {
+  string order_id = 1;
+  string stock_symbol = 2;
+  OrderSide side = 3;
+  int32 quantity = 4;
+}
+
+message PlaceOrderResponse {
+  string order_id = 1;
+  OrderStatus status = 2;
+  string message = 3;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message GetOrderResponse {
+  string order_id = 1;
+  string stock_symbol = 2;
+  OrderSide side = 3;
+  int32 quantity = 4;
+  OrderStatus status = 5;
+  string created_at = 6;
+}
+
+message GetPortfolioRequest {}
+
+message Holding {
+  string stock_symbol = 1;
+  int32 quantity = 2;
+}
+
+message GetPortfolioResponse {
+  repeated Holding holdings = 1;
+  string last_updated = 2;
 }

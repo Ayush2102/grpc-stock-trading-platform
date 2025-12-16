@@ -1,20 +1,20 @@
 package com.jain.grpc_stock_trading_server.service;
 
-import com.jain.grpc.StockRequest;
-import com.jain.grpc.StockResponse;
-import com.jain.grpc.StockTradingServiceGrpc;
+import com.jain.grpc.*;
+import com.jain.grpc_stock_trading_server.entity.Order;
+import com.jain.grpc_stock_trading_server.entity.Portfolio;
 import com.jain.grpc_stock_trading_server.entity.Stock;
+import com.jain.grpc_stock_trading_server.repository.OrderRepository;
+import com.jain.grpc_stock_trading_server.repository.PortfolioRepository;
 import com.jain.grpc_stock_trading_server.repository.StockRepository;
-import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.grpc.server.service.GrpcService;
 import net.devh.boot.grpc.server.service.GrpcService;
-
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,9 +24,13 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
 
     private static final Logger log = LoggerFactory.getLogger(StockTradingServiceImpl.class);
     private final StockRepository stockRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final OrderRepository orderRepository;
 
-    public StockTradingServiceImpl(StockRepository stockRepository) {
+    public StockTradingServiceImpl(StockRepository stockRepository, PortfolioRepository portfolioRepository, OrderRepository orderRepository) {
         this.stockRepository = stockRepository;
+        this.portfolioRepository = portfolioRepository;
+        this.orderRepository = orderRepository;
     }
 
     @Override
@@ -163,5 +167,159 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
         // Push updates every 2 seconds
         scheduler.scheduleAtFixedRate(task, 0, 2, TimeUnit.SECONDS);
     }
+
+    @Override
+    public void placeOrder(PlaceOrderRequest request,
+                           StreamObserver<PlaceOrderResponse> responseObserver) {
+
+        log.info("Placing order {}", request.getOrderId());
+
+        // --- Validation ---
+        if (request.getOrderId().isBlank()
+                || request.getStockSymbol().isBlank()
+                || request.getQuantity() <= 0) {
+
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("Invalid order request")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        Stock stock = stockRepository.findByStockSymbol(request.getStockSymbol());
+        if (stock == null) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("Stock not found")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        try {
+            // --- Persist Order ---
+            Order order = Order.builder()
+                    .orderId(request.getOrderId())
+                    .stockSymbol(request.getStockSymbol())
+                    .side(request.getSide().name())
+                    .quantity(request.getQuantity())
+                    .status("EXECUTED") // synchronous execution for now
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            orderRepository.save(order);
+
+            // --- Update Portfolio ---
+            Portfolio portfolio = portfolioRepository.findAll()
+                    .stream()
+                    .findFirst()
+                    .orElse(
+                            Portfolio.builder()
+                                    .holdings(new HashMap<>())
+                                    .lastUpdated(LocalDateTime.now())
+                                    .build()
+                    );
+
+            portfolio.getHoldings()
+                    .merge(order.getStockSymbol(),
+                            order.getQuantity(),
+                            Integer::sum);
+
+            portfolio.setLastUpdated(LocalDateTime.now());
+            portfolioRepository.save(portfolio);
+
+            responseObserver.onNext(
+                    PlaceOrderResponse.newBuilder()
+                            .setOrderId(order.getOrderId())
+                            .setStatus(OrderStatus.EXECUTED)
+                            .setMessage("Order executed successfully")
+                            .build()
+            );
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            log.error("Order placement failed", e);
+            responseObserver.onError(
+                    Status.INTERNAL
+                            .withDescription("Order processing failed")
+                            .asRuntimeException()
+            );
+        }
+    }
+
+
+    @Override
+    public void getOrder(GetOrderRequest request,
+                         StreamObserver<GetOrderResponse> responseObserver) {
+
+        if (request.getOrderId().isBlank()) {
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT
+                            .withDescription("Order ID required")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        Order order = orderRepository.findByOrderId(request.getOrderId());
+        if (order == null) {
+            responseObserver.onError(
+                    Status.NOT_FOUND
+                            .withDescription("Order not found")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        responseObserver.onNext(
+                GetOrderResponse.newBuilder()
+                        .setOrderId(order.getOrderId())
+                        .setStockSymbol(order.getStockSymbol())
+                        .setSide(OrderSide.valueOf(order.getSide()))
+                        .setQuantity(order.getQuantity())
+                        .setStatus(OrderStatus.valueOf(order.getStatus()))
+                        .setCreatedAt(order.getCreatedAt().toString())
+                        .build()
+        );
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getPortfolio(GetPortfolioRequest request,
+                             StreamObserver<GetPortfolioResponse> responseObserver) {
+
+        Portfolio portfolio = portfolioRepository.findAll()
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (portfolio == null) {
+            responseObserver.onNext(
+                    GetPortfolioResponse.newBuilder()
+                            .setLastUpdated(LocalDateTime.now().toString())
+                            .build()
+            );
+            responseObserver.onCompleted();
+            return;
+        }
+
+        GetPortfolioResponse.Builder builder =
+                GetPortfolioResponse.newBuilder()
+                        .setLastUpdated(portfolio.getLastUpdated().toString());
+
+        portfolio.getHoldings().forEach((symbol, qty) ->
+                builder.addHoldings(
+                        Holding.newBuilder()
+                                .setStockSymbol(symbol)
+                                .setQuantity(qty)
+                                .build()
+                )
+        );
+
+        responseObserver.onNext(builder.build());
+        responseObserver.onCompleted();
+    }
+
 
 }

@@ -16,9 +16,11 @@ The system provides:
 
 - gRPC-based communication between server and client
 - GraphQL API layer (client-side) for querying stock data
+- Order placement and inspection via gRPC command APIs
+- Portfolio state tracking on the server
 - Spring Boot framework with modular design
 - MongoDB integration (server-side)
-- Protobuf for data serialization
+- Protobuf for strongly-typed service contracts
 - Multi-module Maven project structure
 - Dockerized setup with docker-compose
 - Environment-based configuration for secrets
@@ -31,7 +33,26 @@ The system provides:
 - MongoDB · Maven (multi-module) · Docker & Docker Compose
 - Prometheus · Grafana · Micrometer (metrics collection)
 
-## GraphQL API
+## gRPC APIs (Server)
+
+The server exposes the following gRPC APIs, acting as the system of record.
+
+### Stock APIs
+
+- ```GetStockPrice``` – Fetch current stock price
+
+- ```SubscribeStockPrice``` – Stream live stock price updates
+
+### Trading APIs
+
+- ```PlaceOrder``` – Place a BUY/SELL order for a stock
+
+- ```GetOrder``` – Retrieve the status and details of an order
+
+- ```GetPortfolio``` – Retrieve current portfolio holdings
+
+
+## GraphQL API (Client)
 
 The client module exposes a GraphQL endpoint for querying stock data.
 
