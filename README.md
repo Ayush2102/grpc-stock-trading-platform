@@ -3,6 +3,9 @@
 A multi-module Java project using **Spring Boot**, **gRPC** and **GraphQL** to simulate a stock trading platform.  
 It demonstrates clean module separation, shared protobuf contracts, and containerized deployment.
 
+**Design Scope:**
+This project models the core trading workflow and intentionally omits user identity and authentication to keep the focus on distributed order processing and consistency.
+
 The system provides:
 - **gRPC APIs** for efficient service-to-service communication
 - **GraphQL API** layer on the client side for flexible, developer-friendly queries
@@ -54,7 +57,17 @@ The server exposes the following gRPC APIs, acting as the system of record.
 
 ## GraphQL API (Client)
 
-The client module exposes a GraphQL endpoint for querying stock data.
+The client module exposes a GraphQL endpoint that acts as a user-facing API layer over the gRPC services.
+
+### Available APIs
+
+**Queries**
+- `getStock` – Fetch current stock price
+- `getOrder` – Retrieve order details
+- `getPortfolio` – Retrieve current portfolio holdings
+
+**Mutations**
+- `placeOrder` – Place a BUY/SELL order for a stock
 
 ### Endpoint
 ```POST http://localhost:8085/graphql```

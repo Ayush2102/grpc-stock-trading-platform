@@ -1,8 +1,6 @@
 package com.jain.trading.client.service;
 
-import com.jain.grpc.StockRequest;
-import com.jain.grpc.StockResponse;
-import com.jain.grpc.StockTradingServiceGrpc;
+import com.jain.grpc.*;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -94,4 +92,48 @@ public class StockClientService {
             log.warn("No active subscription found to cancel.");
         }
     }
+
+    public PlaceOrderResponse placeOrder(PlaceOrderRequest request) {
+        log.info("Placing order via gRPC: {}", request.getOrderId());
+
+        PlaceOrderResponse response = blockingStub.placeOrder(request);
+
+        log.info(
+                "Received PlaceOrder response for {} with status {}",
+                response.getOrderId(),
+                response.getStatus()
+        );
+
+        return response;
+    }
+
+    public GetOrderResponse getOrder(String orderId) {
+        GetOrderRequest request = GetOrderRequest.newBuilder()
+                .setOrderId(orderId)
+                .build();
+
+        log.info("Requesting order details for orderId: {}", orderId);
+
+        GetOrderResponse response = blockingStub.getOrder(request);
+
+        log.info(
+                "Received order {} with status {}",
+                response.getOrderId(),
+                response.getStatus()
+        );
+
+        return response;
+    }
+
+    public GetPortfolioResponse getPortfolio() {
+        GetPortfolioRequest request = GetPortfolioRequest.newBuilder().build();
+
+        log.info("Requesting portfolio via gRPC");
+
+        GetPortfolioResponse response = blockingStub.getPortfolio(request);
+
+        log.info("Received portfolio with {} holdings", response.getHoldingsCount());
+        return response;
+    }
+
 }

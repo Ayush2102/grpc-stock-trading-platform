@@ -1,7 +1,7 @@
 package com.jain.trading.client.exception;
 
-public class StockNotFoundException extends RuntimeException{
-    public StockNotFoundException(String message){
+public class StockNotFoundException extends RuntimeException {
+    public StockNotFoundException(String message) {
         super(message);
     }
 }

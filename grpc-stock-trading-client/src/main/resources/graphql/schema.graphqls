@@ -4,6 +4,49 @@ type Stock {
     timestamp: String!
 }
 
+type Order {
+    orderId: ID!
+    symbol: String!
+    side: OrderSide!
+    quantity: Int!
+    status: OrderStatus!
+    createdAt: String!
+}
+
+type PortfolioHolding {
+    symbol: String!
+    quantity: Int!
+}
+
+type Portfolio {
+    holdings: [PortfolioHolding!]!
+    lastUpdated: String!
+}
+
+enum OrderSide {
+    BUY
+    SELL
+}
+
+enum OrderStatus {
+    ACCEPTED
+    EXECUTED
+    REJECTED
+}
+
+input PlaceOrderInput {
+    orderId: ID!
+    symbol: String!
+    side: OrderSide!
+    quantity: Int!
+}
+
 type Query {
     getStock(symbol: String!): Stock
+    getOrder(orderId: ID!): Order
+    getPortfolio: Portfolio
+}
+
+type Mutation {
+    placeOrder(input: PlaceOrderInput!): Order
 }
