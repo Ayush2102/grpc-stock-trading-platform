@@ -10,9 +10,10 @@ import com.jain.grpc_stock_trading_server.repository.StockRepository;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.devh.boot.grpc.server.service.GrpcService;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
@@ -38,7 +39,7 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
         String stockSymbol = request.getStockSymbol();
         log.info("Received gRPC request for stock symbol: {}", stockSymbol);
 
-        if(stockSymbol.isBlank()){
+        if (stockSymbol.isBlank()) {
             log.warn("Received invalid stock symbol: '{}'", stockSymbol);
             responseObserver.onError(
                     Status.INVALID_ARGUMENT
@@ -50,7 +51,7 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
         try {
             Stock stockEntity = stockRepository.findByStockSymbol(stockSymbol);
 
-            if(stockEntity == null){
+            if (stockEntity == null) {
                 log.warn("Stock not found: {}", stockSymbol);
                 responseObserver.onError(
                         Status.NOT_FOUND
@@ -192,6 +193,16 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
             responseObserver.onError(
                     Status.NOT_FOUND
                             .withDescription("Stock not found")
+                            .asRuntimeException()
+            );
+            return;
+        }
+
+        Order existingOrder = orderRepository.findByOrderId(request.getOrderId());
+        if (existingOrder != null) {
+            responseObserver.onError(
+                    Status.ALREADY_EXISTS
+                            .withDescription("Order with this orderId already exists")
                             .asRuntimeException()
             );
             return;
