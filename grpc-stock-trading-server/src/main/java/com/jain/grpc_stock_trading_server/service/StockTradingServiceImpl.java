@@ -4,6 +4,8 @@ import com.jain.grpc.*;
 import com.jain.grpc_stock_trading_server.entity.Order;
 import com.jain.grpc_stock_trading_server.entity.Portfolio;
 import com.jain.grpc_stock_trading_server.entity.Stock;
+import com.jain.grpc_stock_trading_server.events.OrderPlacedEvent;
+import com.jain.grpc_stock_trading_server.kafka.OrderEventProducer;
 import com.jain.grpc_stock_trading_server.repository.OrderRepository;
 import com.jain.grpc_stock_trading_server.repository.PortfolioRepository;
 import com.jain.grpc_stock_trading_server.repository.StockRepository;
@@ -14,8 +16,8 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,11 +29,13 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
     private final StockRepository stockRepository;
     private final PortfolioRepository portfolioRepository;
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
 
-    public StockTradingServiceImpl(StockRepository stockRepository, PortfolioRepository portfolioRepository, OrderRepository orderRepository) {
+    public StockTradingServiceImpl(StockRepository stockRepository, PortfolioRepository portfolioRepository, OrderRepository orderRepository, OrderEventProducer orderEventProducer) {
         this.stockRepository = stockRepository;
         this.portfolioRepository = portfolioRepository;
         this.orderRepository = orderRepository;
+        this.orderEventProducer = orderEventProducer;
     }
 
     @Override
@@ -215,36 +219,36 @@ public class StockTradingServiceImpl extends StockTradingServiceGrpc.StockTradin
                     .stockSymbol(request.getStockSymbol())
                     .side(request.getSide().name())
                     .quantity(request.getQuantity())
-                    .status("EXECUTED") // synchronous execution for now
+                    .status("ACCEPTED")
                     .createdAt(LocalDateTime.now())
                     .build();
 
             orderRepository.save(order);
 
-            // --- Update Portfolio ---
-            Portfolio portfolio = portfolioRepository.findAll()
-                    .stream()
-                    .findFirst()
-                    .orElse(
-                            Portfolio.builder()
-                                    .holdings(new HashMap<>())
-                                    .lastUpdated(LocalDateTime.now())
-                                    .build()
-                    );
+            // --- Publish OrderPlacedEvent ---
+            OrderPlacedEvent event = OrderPlacedEvent.builder()
+                    .orderId(order.getOrderId())
+                    .stockSymbol(order.getStockSymbol())
+                    .side(order.getSide())
+                    .quantity(order.getQuantity())
+                    .createdAt(Instant.now())
+                    .build();
 
-            portfolio.getHoldings()
-                    .merge(order.getStockSymbol(),
-                            order.getQuantity(),
-                            Integer::sum);
-
-            portfolio.setLastUpdated(LocalDateTime.now());
-            portfolioRepository.save(portfolio);
+            try {
+                orderEventProducer.publishOrderPlaced(event);
+            } catch (Exception ex) {
+                log.error(
+                        "Failed to publish OrderPlacedEvent for orderId={}",
+                        order.getOrderId(),
+                        ex
+                );
+            }
 
             responseObserver.onNext(
                     PlaceOrderResponse.newBuilder()
                             .setOrderId(order.getOrderId())
-                            .setStatus(OrderStatus.EXECUTED)
-                            .setMessage("Order executed successfully")
+                            .setStatus(OrderStatus.ACCEPTED)
+                            .setMessage("Order accepted for processing")
                             .build()
             );
             responseObserver.onCompleted();

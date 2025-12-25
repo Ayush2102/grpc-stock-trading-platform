@@ -4,7 +4,7 @@ A multi-module Java project using **Spring Boot**, **gRPC** and **GraphQL** to s
 It demonstrates clean module separation, shared protobuf contracts, and containerized deployment.
 
 **Design Scope:**
-This project models the core trading workflow and intentionally omits user identity and authentication to keep the focus on distributed order processing and consistency.
+This project models the core trading workflow and intentionally omits user identity and authentication to keep the focus on distributed order processing, event-driven execution, and consistency.
 
 The system provides:
 - **gRPC APIs** for efficient service-to-service communication
@@ -20,7 +20,8 @@ The system provides:
 - gRPC-based communication between server and client
 - GraphQL API layer (client-side) for querying stock data
 - Order placement and inspection via gRPC command APIs
-- Portfolio state tracking on the server
+- Asynchronous order execution using Kafka events
+- Portfolio state tracking via event-driven processing
 - Spring Boot framework with modular design
 - MongoDB integration (server-side)
 - Protobuf for strongly-typed service contracts
@@ -33,8 +34,19 @@ The system provides:
 
 ## Tech Stack
 - Java 17 · Spring Boot 3 · gRPC · GraphQL · Protobuf
-- MongoDB · Maven (multi-module) · Docker & Docker Compose
+- Apache Kafka · MongoDB · Maven (multi-module) · Docker & Docker Compose
 - Prometheus · Grafana · Micrometer (metrics collection)
+
+## Event-Driven Architecture (Kafka)
+
+Order execution is handled asynchronously using Kafka.
+
+- `PlaceOrder` persists the order with status `ACCEPTED`
+- An `OrderPlaced` event is published to Kafka
+- A Kafka consumer executes the order, updates the portfolio, and marks the order `EXECUTED`
+
+This design decouples order submission from execution and enables eventual consistency and retry-safe processing.
+
 
 ## gRPC APIs (Server)
 
@@ -48,7 +60,7 @@ The server exposes the following gRPC APIs, acting as the system of record.
 
 ### Trading APIs
 
-- ```PlaceOrder``` – Place a BUY/SELL order for a stock
+- ```PlaceOrder``` – Accepts an order and publishes an execution event
 
 - ```GetOrder``` – Retrieve the status and details of an order
 
@@ -113,6 +125,7 @@ query {
 
 - Server exposed at localhost:9091 (gRPC)
 - Client exposed at localhost:8085
+- Kafka broker available at localhost:9092
 - Prometheus dashboard at localhost:9095
 - Grafana dashboard at localhost:3000 (default user: admin / password: admin)
 
