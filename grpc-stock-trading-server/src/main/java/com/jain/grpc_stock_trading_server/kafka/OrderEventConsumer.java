@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ public class OrderEventConsumer {
     private final OrderRepository orderRepository;
     private final PortfolioRepository portfolioRepository;
 
+    @Transactional
     @KafkaListener(
             topics = "order-placed",
             groupId = "order-execution-group"
@@ -37,43 +39,70 @@ public class OrderEventConsumer {
         }
 
         // --- Idempotency check ---
-        if ("EXECUTED".equals(order.getStatus())) {
-            log.warn("Order {} already executed, skipping", order.getOrderId());
+        if ("EXECUTED".equals(order.getStatus()) || "REJECTED".equals(order.getStatus())) {
+            log.warn("Order {} already finalized with status {}", order.getOrderId(), order.getStatus());
             return;
         }
 
+        // --- Load Portfolio ---
+        Portfolio portfolio = portfolioRepository.findAll()
+                .stream()
+                .findFirst()
+                .orElse(
+                        Portfolio.builder()
+                                .holdings(new HashMap<>())
+                                .lastUpdated(LocalDateTime.now())
+                                .build()
+                );
+
+
+        int currentHolding =
+                portfolio.getHoldings().getOrDefault(order.getStockSymbol(), 0);
+
         try {
             // --- Update Portfolio ---
-            Portfolio portfolio = portfolioRepository.findAll()
-                    .stream()
-                    .findFirst()
-                    .orElse(
-                            Portfolio.builder()
-                                    .holdings(new HashMap<>())
-                                    .lastUpdated(LocalDateTime.now())
-                                    .build()
+            if ("BUY".equals(order.getSide())) {
+
+                portfolio.getHoldings().put(
+                        order.getStockSymbol(),
+                        currentHolding + order.getQuantity()
+                );
+
+            } else if ("SELL".equals(order.getSide())) {
+
+                if (currentHolding < order.getQuantity()) {
+                    log.warn(
+                            "Rejecting SELL order {}: insufficient holdings (have={}, want={})",
+                            order.getOrderId(),
+                            currentHolding,
+                            order.getQuantity()
                     );
 
-            portfolio.getHoldings()
-                    .merge(order.getStockSymbol(),
-                            order.getQuantity(),
-                            Integer::sum);
+                    order.setStatus("REJECTED");
+                    orderRepository.save(order);
+                    return;
+                }
+
+                portfolio.getHoldings().put(
+                        order.getStockSymbol(),
+                        currentHolding - order.getQuantity()
+                );
+            }
 
             portfolio.setLastUpdated(LocalDateTime.now());
             portfolioRepository.save(portfolio);
 
-            // --- Mark order EXECUTED ---
             order.setStatus("EXECUTED");
             orderRepository.save(order);
 
             log.info("Order {} executed successfully", order.getOrderId());
 
         } catch (Exception ex) {
-            log.error(
-                    "Failed to execute order {}. Will retry on next consumption.",
-                    order.getOrderId(),
-                    ex
-            );
+            log.error("Order execution failed for {}", order.getOrderId(), ex);
+
+            order.setStatus("REJECTED");
+            orderRepository.save(order);
+
             throw ex;
         }
     }
